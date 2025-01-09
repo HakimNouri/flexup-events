@@ -9,14 +9,16 @@
 
     <h2> {% if event %} Event: {{ event.name }} {% else %} Create a new event {% endif %} </h2>
     <div class="d-flex justify-content-end ">
-      {% if event %}
+      {% if event and isAdmin %}
       <button id="edit-button" onclick="toggleEditMode()" class="btn btn-outline-secondary">Edit</button>
       {% endif %}
     </div>
     <form method="POST" id="event-form" {% if event %} data-readonly="true" {% endif %}>
         {% csrf_token %}
         {{ form.as_p }}
+
         
+        {% if isAdmin %}
         {# Save button, hidden in read-only mode #}
         <div class="justify-content-between" id="button-container">
             <button type="submit" id="save-button" > Save </button>
@@ -24,15 +26,22 @@
             <button type="button" id="delete-button" class="btn btn-danger" onclick="deleteEvent('{{ event.slug }}')">Delete</button>
             {% else %}
             <a href="/events/"><button type="button" id="cancel-button" class="btn btn-outline-secondary">Cancel</button></a>
-            
             {% endif %}
-          </div>
+        </div>
+        {% endif %}
     </form>
-        <p>data-readonly : <span id="is_readonly">Unknown</span></p>
+    {% if isAdmin %}
+      <p {% if not event %} style="display: none;" {% endif %}>data-readonly : <span id="is_readonly">Unknown</span></p>
+    {% endif %}
 
-</div> 
+</div>
+
+{% if event %}
+  {% include "partials/table.html" with table_title="Participants" table_body_id="participant-table-body" table_rows_as_forms=True %}
+{% endif %}
 
 <script>
+
   function toggleEditMode() {
     const form = document.getElementById('event-form');
     const buttonContainer = document.getElementById('button-container');
@@ -41,18 +50,26 @@
     const isCurrentlyReadOnly = form.getAttribute('data-readonly') === 'true';
     form.setAttribute('data-readonly', !isCurrentlyReadOnly);
 
+    const editBtn = document.getElementById('edit-button');
+    editBtn.innerHTML = isCurrentlyReadOnly ? 'Cancel' : 'Edit';
+
     // Update the id="is_readonly" span content
-    document.getElementById('is_readonly').innerText = !isCurrentlyReadOnly;
+    is_readonly = document.getElementById('is_readonly');
+    if(is_readonly){
+      is_readonly.innerText = !isCurrentlyReadOnly;
+    }
 
     // Enable/disable fields accordingly
     Array.from(form.elements).forEach(element => {
-      if (element.name !== 'csrfmiddlewaretoken') {
+      if (element.name !== 'csrfmiddlewaretoken' && element.name !== 'adminLink' && element.name !== 'registrationLink') {
         element.disabled = isCurrentlyReadOnly ? false : true;
       }
     });
     
     // Show/hide the button container
-    buttonContainer.style.display = isCurrentlyReadOnly ? 'flex' : 'none';
+    if(buttonContainer){
+      buttonContainer.style.display = isCurrentlyReadOnly ? 'flex' : 'none';
+    }    
   }
 
   function deleteEvent(slug) {
@@ -80,61 +97,76 @@
     const buttonContainer = document.getElementById('button-container');
     if (form.getAttribute('data-readonly') === 'true') {
       Array.from(form.elements).forEach(element => {
-        if (element.name !== 'csrfmiddlewaretoken') {
+        if (element.name !== 'csrfmiddlewaretoken' && element.name !== 'adminLink' && element.name !== 'registrationLink') {
           element.disabled = true;
         }
       });
     }
     // update the id="is_readonly" span content with the current value of data-readonly
-    document.getElementById('is_readonly').innerText = form.getAttribute('data-readonly');
+    is_readonly = document.getElementById('is_readonly');
+    if(is_readonly){
+      is_readonly.innerText = form.getAttribute('data-readonly');
+    }
     
-    console.log('slug:', document.getElementById('id_slug').value);
-    // Hide the button container initially it there is a slug
-    if (event.pk) {
-      console.log("Hiding button container");
-      buttonContainer.style.display = 'none';
+    // Hide the button container initially if it's an edit form
+    if(buttonContainer){
+      {% if event %}
+        console.log("Hiding button container");
+        buttonContainer.style.display = 'none';
+      {% else %}
+        console.log("Showing button container");
+        buttonContainer.style.display = 'flex';
+      {% endif %}
     }
-    else {
-      console.log("Showing button container");
-      buttonContainer.style.display = 'flex';
-    }
-    // Add event listener to the slug element
-    const slugElement = document.getElementById('id_slug');
-    if (slugElement) {
-      slugElement.addEventListener('click', (event) => {
+    // Add event listener to the link elements
+    const adminLinkElement = document.getElementById('id_adminLink');
+    if (adminLinkElement) {
+      adminLinkElement.addEventListener('click', (event) => {
         event.preventDefault();
-        const eventurl = window.location.href + event.target.value; 
-        copyToClipboard(eventurl);
+        copyToClipboard(event.target.value);
+        showNotification('URL copied to clipboard!');
+      });
+    }
+    const registrationLinkElement = document.getElementById('id_registrationLink');
+    if (registrationLinkElement) {
+      registrationLinkElement.addEventListener('click', (event) => {
+        event.preventDefault();
+        copyToClipboard(event.target.value);
         showNotification('URL copied to clipboard!');
       });
     }
   });
 
-  function copyToClipboard(text) {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-  }
+  
+  //Participation Forms Handeling
+  document.addEventListener("htmx:afterRequest", function (event) {
 
-  // Function to show a notification
-  function showNotification(message) {
-    const notification = document.createElement('div');
-    notification.innerText = message;
-    notification.style.position = 'fixed';
-    notification.style.bottom = '10px';
-    notification.style.right = '10px';
-    notification.style.backgroundColor = '#4CAF50';
-    notification.style.color = 'white';
-    notification.style.padding = '10px';
-    notification.style.borderRadius = '5px';
-    document.body.appendChild(notification);
-    setTimeout(() => {
-      document.body.removeChild(notification);
-    }, 3000);
-  }
+    console.log(0);
+    if (event.detail.xhr.status === 200) {
+      console.log(1);
+      if (event.target.classList.contains("create-form")) {
+        try {
+          const response = JSON.parse(event.detail.xhr.responseText);
+          if (response.redirect_link) {
+            window.location.href = response.redirect_link;
+            return;
+          }
+        } catch (error) {
+          
+        }
+        const form = event.target;
+        form.reset();
+        showNotification("participation is succesfuly added");
+      } else if (event.target.classList.contains("update-form")) {
+        showNotification("participation is succesfuly updated"); // Call the success message function
+      }
+    } else if (event.detail.xhr.status === 204) {
+      showNotification("participation is succesfuly deleted");
+    } else {
+      showNotification("Form submission failed with status:"+event.detail.xhr.status, true);
+    }    
+  });
+
 </script>
 
 {% endblock %}

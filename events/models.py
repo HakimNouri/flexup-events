@@ -1,3 +1,4 @@
+from email.policy import default
 from enum import Enum
 from django.forms import ValidationError
 from django.utils.text import slugify
@@ -12,6 +13,7 @@ class Event(models.Model):
     description = models.TextField(verbose_name='Description', blank=True, null=True)
     location = models.CharField(max_length=200, verbose_name='Location', blank=True, null=True)
     slug = models.SlugField(unique=True, default=uuid4)
+    admin_code = models.SlugField(unique=True, default=uuid4)
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -29,7 +31,7 @@ class Status(Enum):
 
     @classmethod
     def choices(cls):
-        return [(key.value, key.name) for key in cls]
+        return [(key.name, key.value) for key in cls]
 
     @classmethod
     def default(cls):
@@ -38,12 +40,12 @@ class Status(Enum):
 class Response(models.Model):
     participant = models.CharField(max_length=100, verbose_name='Name')
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='participants')
-    status = models.CharField(max_length=20, verbose_name='Status', choices=Status.choices())
+    status = models.CharField(max_length=20, verbose_name='Status', choices=Status.choices(), default=Status.default())
     slug = models.SlugField(unique=True, default=uuid4)
     is_admin = models.BooleanField(default=False, verbose_name='Is Admin')
 
     def clean(self):
-        if self.status not in Status.choices():
+        if self.status not in dict(Status.choices()).keys():
             raise ValidationError('Invalid status')
         if not self.status:
             raise ValidationError('Please select a status')

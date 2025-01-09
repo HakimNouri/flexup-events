@@ -1,0 +1,31 @@
+<tr id="row-id{{participation.slug}}">
+
+    <form method="POST"
+        class="update-form"
+        hx-post="{% url 'edit_participant' participation.slug %}"
+        >
+        <td>
+            <input type="text" name="participant" maxlength="100" required id="id_participant"
+                    value="{{ participation.participant }}">
+        </td>
+        <td>
+            <select name="status" required id="id_status">
+                <option value="INVITED" {% if participation.status == "INVITED" %}selected{% endif %}>Invited</option>
+                <option value="CONFIRMED" {% if participation.status == "CONFIRMED" %}selected{% endif %}>Confirmed</option>
+                <option value="DECLINED" {% if participation.status == "DECLINED" %}selected{% endif %}>Declined</option>
+                <option value="MAYBE" {% if participation.status == "MAYBE" %}selected{% endif %}>Maybe</option>
+                <option value="WAITING_LIST" {% if participation.status == "WAITING_LIST" %}selected{% endif %}>Waiting list</option>
+            </select>
+        </td>
+        <td>
+            {% csrf_token %}
+            <input type="hidden" name="event" value="{{participation.event.id}}" id="id_event">
+            <button class="btn btn-primary" type="submit">Update</button>
+            <button class="btn btn-danger" type="button" 
+            hx-delete="/delete_participant/{{participation.slug}}"
+            hx-target="#row-id{{participation.slug}}"
+            hx-confirm="Are you sure you want to delete this response?"
+            hx-swap="delete">Delete</button>
+        </td>
+    </form>
+</tr>

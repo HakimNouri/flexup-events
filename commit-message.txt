@@ -1,0 +1,37 @@
+Enhance events and responses management features
+
+- HTML Adjustments:
+  - Fixed link redirect issue by updating URL port in rows click event script (from 5000 to 8000).
+  - Removed unnecessary event link edits in event.html.
+  - Fixed JavaScript undefined variable issue by using Django's {% if event %} condition.
+  - Modified edit button title to 'Cancel' when editing is active.
+
+- Refactoring and Optimization:
+  - Unified table structure using generic partials.
+  - Applied the generic table structure for event responses.
+  - Removed duplicate JavaScript code and moved basic functions (copyToClipboard, showNotification) to base.html.
+
+- Forms Enhancements:
+  - Updated event form:
+    - Replaced slug input with admin and registration links (conditionally rendered for admins).
+    - Made fields readonly for non-admin users.
+  - Updated response form:
+    - Display name and status fields (event and is_admin are hidden).
+    - Set fields readonly for non-admins and converted select fields to readonly text fields.
+    - Added admin links for participants.
+
+- New Features:
+  - Integrated HTMX to enhance interactivity for new features.
+  - Created views and templates for editing response details (via admin links).
+  - Added admin-specific functionality:
+    - Ability to edit, delete participations, and manage participants' responses.
+
+- Models & Backend Updates:
+  - Added admin_code field to event model.
+  - Updated Response.clean method to validate against keys instead of tuples.
+  - Enhanced views for event management (actions, response listing, participation handling).
+
+- Other Changes:
+  - Added custom filters for field values and HTML widgets.
+  - Added partial for response rows in tables.
+  - Updated URLs for admin and guest functionality.

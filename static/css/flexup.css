@@ -145,6 +145,10 @@ table {
   /* Ensures no extra space between table cells */
 }
 
+#sortable-table th, .sortable-table tr[data-link]{
+  cursor: pointer;
+}
+
 th {
   background-color: #eee;
   text-align: left;
@@ -216,9 +220,23 @@ form input, textarea, select {
   outline: 1px solid #80bdff;
   border:none;
   border-radius: 3px;
-  padding: 5 10px;
+  padding: 5px 10px;
   /* background-clip: padding-box;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out; */
+}
+
+td input, td select {
+  width: 100% !important;
+  height: 30px;
+  color: var(--flexup-dark-blue);
+  outline: 1px solid #80bdff;
+  border:none;
+  border-radius: 3px;
+  padding: 5px 10px;
+}
+
+td {
+  padding: 10px;
 }
 
 form input:disabled,

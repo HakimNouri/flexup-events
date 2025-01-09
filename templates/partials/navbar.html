@@ -40,13 +40,9 @@
     {# Links  #}
     <div id="nav-links"  class="d-flex align-items-center me-3 gap-3">
       <a href="https://www.flexup.org" class="btn" target="_blank">FlexUp</a>
-      <a href="/events_custom" class="btn btn btn-outline-primary">All events (custom)</a>
-      <a href="/events" class="btn btn btn-outline-primary">All events(generic)</a>
-      <a href="/event" class="btn btn btn-outline-primary">New event</a>
-
-    </div>
-    
-    
+      <a href="{% url 'events' %}" class="btn btn btn-outline-primary">All events</a>
+      <a href="{% url 'event_create' %}" class="btn btn btn-outline-primary">New event</a>
+    </div>    
   </div>
 
 </nav>

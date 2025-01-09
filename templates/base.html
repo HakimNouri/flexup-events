@@ -1,6 +1,6 @@
 {#  -------- templates/base.html ----------- #}
 {% load static %}
-
+<!DOCTYPE html>
 <html>
   <head>
     <title>FlexUp Events</title>
@@ -20,9 +20,38 @@
       {% block content %}{% endblock %}
     </main>
 
-    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
-   
+    {% block scripts %}{% endblock %}
+    
+    <script>
+      function copyToClipboard(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
 
-  </body>
-  
+      // Function to show a notification
+      function showNotification(message, error=false) {
+        const notification = document.createElement('div');
+        notification.innerText = message;
+        notification.style.position = 'fixed';
+        notification.style.bottom = '10px';
+        notification.style.right = '10px';
+        notification.style.backgroundColor = '#4CAF50';
+        if(error){
+          notification.style.backgroundColor = '#c1121f';
+        }
+        notification.style.color = 'white';
+        notification.style.padding = '10px';
+        notification.style.borderRadius = '5px';
+        document.body.appendChild(notification);
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 3000);
+      }
+    </script>
+    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+  </body>  
 </html>

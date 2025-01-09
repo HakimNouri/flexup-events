@@ -1,12 +1,5 @@
 # FlexUp Events
 
-> Note to the candidate:
->
-> - This README file was taken from another project and partially updated. 
-> - Please update the README with the correct information (including any changes made to the technical details and usage) once you have completed the challenge and remove this note.
-> - Read the instruction for this challenge here : `challenge_instructions.md`
-
-
 A simple Django application that demonstrates secure event management without requiring traditional user logins or email confirmations.  
 
 ## Table of Contents

@@ -1,0 +1,116 @@
+{# templates/event.html #}
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+
+<div>
+    <h2>Your Response:</h2>
+    <div class="d-flex justify-content-end ">
+      <button id="edit-button" onclick="toggleEditMode()" class="btn btn-outline-secondary">Edit</button>
+    </div>
+    <form method="POST" id="event-form" data-readonly="true" hx-post="{% url 'edit_participant' participation.slug %}" hx-swap="none">
+        {% csrf_token %}
+        {{ form.as_p }}
+        {# Save button, hidden in read-only mode #}
+        <div class="justify-content-between" id="button-container">
+            <button type="submit" id="save-button" > Save </button>
+            <button 
+              type="button" 
+              id="delete-button" 
+              hx-delete="{% url 'delete_participant' participation.slug %}"
+              hx-confirm="Are you sure you want to delete your response?"
+              class="btn btn-danger">Delete</button>
+        </div>
+    </form>
+    <p>data-readonly : <span id="is_readonly">Unknown</span></p>
+</div>
+
+<script>
+  function toggleEditMode() {
+    const form = document.getElementById('event-form');
+    const buttonContainer = document.getElementById('button-container');
+    console.log('toggleEditMode to: ', form.getAttribute('data-readonly'));
+    // Toggle the data-readonly attribute
+    const isCurrentlyReadOnly = form.getAttribute('data-readonly') === 'true';
+    form.setAttribute('data-readonly', !isCurrentlyReadOnly);
+
+    const editBtn = document.getElementById('edit-button');
+    editBtn.innerHTML = isCurrentlyReadOnly ? 'Cancel' : 'Edit';
+
+    // Update the id="is_readonly" span content
+    is_readonly = document.getElementById('is_readonly');
+    if(is_readonly){
+      is_readonly.innerText = !isCurrentlyReadOnly;
+    }
+
+    // Enable/disable fields accordingly
+    Array.from(form.elements).forEach(element => {
+      if (element.name !== 'csrfmiddlewaretoken' && element.name !== 'adminLink') {
+        element.disabled = isCurrentlyReadOnly ? false : true;
+      }
+    });
+    
+    // Show/hide the button container
+    if(buttonContainer){
+      buttonContainer.style.display = isCurrentlyReadOnly ? 'flex' : 'none';
+    }    
+  }
+
+  // On page load, if an event exists, ensure fields start disabled
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('event-form');
+    const buttonContainer = document.getElementById('button-container');
+    if (form.getAttribute('data-readonly') === 'true') {
+      Array.from(form.elements).forEach(element => {
+        if (element.name !== 'csrfmiddlewaretoken' && element.name !== 'adminLink') {
+          element.disabled = true;
+        }
+      });
+    }
+    // update the id="is_readonly" span content with the current value of data-readonly
+    is_readonly = document.getElementById('is_readonly');
+    if(is_readonly){
+      is_readonly.innerText = form.getAttribute('data-readonly');
+    }
+    
+    // Hide the button container initially if it's an edit form
+    if(buttonContainer){
+      buttonContainer.style.display = 'none';
+    }
+    // Add event listener to the link elements
+    const adminLinkElement = document.getElementById('id_adminLink');
+    if (adminLinkElement) {
+      adminLinkElement.addEventListener('click', (event) => {
+        event.preventDefault();
+        copyToClipboard(event.target.value);
+        showNotification('URL copied to clipboard!');
+      });
+    }
+  });
+
+  document.addEventListener("htmx:afterRequest", function (event) {
+    if (event.detail.xhr.status === 200) {
+      
+      //getting the requeest method
+      const requestMethod = event.target.getAttribute("hx-post") ? "POST" :
+                            event.target.getAttribute("hx-get") ? "GET" :
+                            event.target.getAttribute("hx-delete") ? "DELETE" :
+                            "UNKNOWN";
+      
+      if (requestMethod === "DELETE") {
+        //showNotification("participation is succesfuly deleted");
+        window.location.href = "{% url 'event_register' event.slug %}";
+      } else {
+        toggleEditMode();
+        showNotification("your response is succesfuly updated");
+      }
+    } else {
+      showNotification("Form submission failed with status:"+event.detail.xhr.status, true);
+    }    
+  });
+
+</script>
+
+{% endblock %}

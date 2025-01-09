@@ -8,33 +8,11 @@
 
 {% block content %}
 
-    <table id="sortable-table">
-        <h2 style="width: 100%;">All Events (Generic table)</h2>
-        <thead>
-            <tr>
-                {% for column in columns %}<th data-name="{{ column.name }}">{{ column.title }}</th>{% endfor %}
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in data %}
-                <tr data-slug="{{ row.slug }}">
-                    {% comment %} Note: get_idem is a custom filter defined in custom_filters.py {% endcomment %}
-                    {% for col in columns %}<td>{{ row|get_item:col.name }}</td>{% endfor %}
-                    <td>
-                        {% csrf_token %}
-                        <a href="{% url 'event_view' row.slug %}"><i class="bi bi-eye"></i></a>
-                        <a href="#" onclick="deleteEvent('{{ row.slug }}')" class="ms-3"><i class="bi bi-trash"></i></a>
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <br>
-    <a href="{% url 'home' %}">Back to home page</a>
+    {% include "partials/table.html" with table_title="All Events" %}
 
     <script>
-        function deleteEvent(slug) {
+        function deleteEvent(event, slug) {
+            event.stopPropagation();
             if (confirm('Are you sure you want to delete this event?')) {
             fetch(`/event/${slug}/delete/`, {
                 method: 'POST',
@@ -51,58 +29,6 @@
             });
             }
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const table = document.getElementById('sortable-table');
-            const headers = table.querySelectorAll('th');
-            const rows = table.querySelectorAll('tbody tr');
-            const state = { sortCol: null, ascending: true }; // Track sorting state
-
-            // Function to sort table by a specific column
-            function sortTable(table, colIndex, ascending) {
-                const rowsArray = Array.from(table.tBodies[0].rows);
-                const direction = ascending ? 1 : -1;
-
-                rowsArray.sort((rowA, rowB) => {
-                    const cellA = rowA.cells[colIndex].innerText.toLowerCase();
-                    const cellB = rowB.cells[colIndex].innerText.toLowerCase();
-
-                    if (cellA < cellB) return -1 * direction;
-                    if (cellA > cellB) return 1 * direction;
-                    return 0;
-                });
-
-                rowsArray.forEach(row => table.tBodies[0].appendChild(row));
-            }
-
-            // Attach click event listeners to table headers for sorting
-            headers.forEach((header, colIndex) => {
-                header.addEventListener('click', () => {
-                    const isAscending = state.sortCol === colIndex ? !state.ascending : true;
-                    state.sortCol = colIndex;
-                    state.ascending = isAscending;
-                    sortTable(table, colIndex, isAscending);
-                });
-            });
-
-            // Attach click event listeners to table rows for navigation
-            rows.forEach(row => {
-                row.addEventListener('click', () => {
-                    const slug = row.getAttribute('data-slug');
-                    if (slug) {
-                        // const currentUrl = new URL(window.location.href);
-                        // currentUrl.pathname += `${slug}/`;
-                        // window.location.href = currentUrl.href;
-                        const currentUrl = "http://127.0.0.1:5000/event/" + slug + '/';
-                        console.log("currentUrl", currentUrl);
-                        window.location.href = currentUrl; 
-
-                    }
-                    
-                });
-            });
-        });
-
     </script>
 
 {% endblock content %}

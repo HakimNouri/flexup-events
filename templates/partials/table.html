@@ -1,77 +1,103 @@
 
 {% load custom_filters %}
 
-{% block title %}
-    {{ title }}
-{% endblock title %}
 {% block content %}
-    <table id="sortable-table">
+    <table class="sortable-table">
+        <h2 style="width: 100%;">{{table_title}}</h2>
         <thead>
             <tr>
                 {% for column in columns %}<th data-name="{{ column.name }}">{{ column.title }}</th>{% endfor %}
+                
+                {% with data|last as last_item %}
+                    {% if last_item.actions %}
+                        <th>Actions</th>
+                    {% endif %}
+                {% endwith %}
             </tr>
         </thead>
-        <tbody>
+        <tbody id="{{table_body_id}}">
             {% for row in data %}
-                <tr data-slug="{{ row.slug }}">
-                    {% comment %} Note: get_idem is a custom filter defined in custom_filters.py {% endcomment %}
-                    {% for col in columns %}<td>{{ row|get_item:col.name }}</td>{% endfor %}
-                </tr>
+            <tr 
+            {% if row.link %} data-link="{{ row.link }}" {% endif %}
+            {% if row.class_name == 'create-form' %} id="creation_form_row" {% else %} id="row-id{{row.slug}}" {% endif %}
+            >
+                {% comment %} Note: get_idem is a custom filter defined in custom_filters.py {% endcomment %}
+                {% if table_rows_as_forms %}
+
+                    <form 
+                        method="POST" 
+                        class="{{ row.class_name }}"
+                        {% if row.class_name == 'create-form' %}
+                            
+                            hx-post="{% url 'add_participant' %}"
+                            {% if isAdmin %}
+                                hx-target="#creation_form_row"
+                                hx-swap="beforebegin"
+                                hx-reset="true"
+                            {% else %}
+                                hx-trigger="submit" 
+                                hx-on="htmx:afterRequest:redirectOnSuccess"
+                            {% endif %}
+                        {% else %}
+                            hx-post="{% url 'edit_participant' row.slug %}"
+                        {% endif %}
+                    >
+                        
+                        
+                        {% for col in columns %}
+                            <td>{{ row|get_form_item:col.name }}</td>
+                        {% endfor %}
+                    
+                {% else %}
+                    {% for col in columns %}
+                        <td>{{ row|get_item:col.name }}</td>
+                    {% endfor %}
+                {% endif %}
+
+                {% if row.actions %}
+                    <td>
+                    {% csrf_token %}
+                    {% if table_rows_as_forms %}
+                        {{ row|get_form_item:'event'}}
+                        {{ row|get_form_item:'is_admin'}}
+                    {% endif %}
+                    {% for action in row.actions %}
+                        {% if table_rows_as_forms %}
+                        
+                        <button 
+                            {% if action.onclick %}onclick="{{ action.onclick|safe }}"{% endif %} 
+                            class="{{ action.class|safe }}"
+                            
+                            {% if action.type == 'delete' %}
+                                type="button"
+                                hx-delete="{% url 'delete_participant' row.slug %}"
+                                hx-confirm="Are you sure you want to delete this response?"
+                                hx-target="#row-id{{row.slug}}"
+                                hx-swap="delete"
+                            {% else %} 
+                                type="{{action.type}}"
+                            {% endif %} 
+                            >
+                            {{action.text}}
+                        </button>
+                        {% else %}
+                        <a href="{{ action.url|safe }}" {% if action.onclick %}onclick="{{ action.onclick|safe }}"{% endif %} class="{{ action.class|safe }}"><i class="{{ action.icon|safe }}"></i>{{action.text}}</a>
+                        {% endif %}
+                    {% endfor %}
+                    </td>
+                {% endif %}
+
+                {% if table_rows_as_forms %}</form>{% endif %}
+            </tr>
             {% endfor %}
         </tbody>
     </table>
     <br>
     <a href="{% url 'home' %}">Back to home page</a>
-    <script>
-        // Function to sort table by a specific column
-        function sortTable(table, colIndex, ascending) {
-            const rowsArray = Array.from(table.tBodies[0].rows);
-            const direction = ascending ? 1 : -1;
-
-            // Sort the rows based on the clicked column's content
-            rowsArray.sort((rowA, rowB) => {
-                const cellA = rowA.cells[colIndex].innerText.toLowerCase();
-                const cellB = rowB.cells[colIndex].innerText.toLowerCase();
-
-                if (cellA < cellB) return -1 * direction;
-                if (cellA > cellB) return 1 * direction;
-                return 0;
-            });
-
-            // Append sorted rows to the table body
-            rowsArray.forEach(row => table.tBodies[0].appendChild(row));
-        }
-
-        // Attach click event listeners to the table headers
-        document.addEventListener('DOMContentLoaded', () => {
-            const table = document.getElementById('sortable-table');
-            const headers = table.querySelectorAll('th');
-            const state = { sortCol: null, ascending: true };  // Track current sorting state
-
-            headers.forEach((header, colIndex) => {
-                header.addEventListener('click', () => {
-                    const isAscending = state.sortCol === colIndex ? !state.ascending : true;
-                    state.sortCol = colIndex;
-                    state.ascending = isAscending;
-                    sortTable(table, colIndex, isAscending);
-                });
-            });
-        });
-    </script>
-    <style>
-        th {
-            cursor: pointer;
-        }
-    </style>
 {% endblock content %}
 
 {% block scripts %}
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const table = document.getElementById('sortable-table');
-        const headers = table.querySelectorAll('th');
-        const rows = table.querySelectorAll('tbody tr');
-        const state = { sortCol: null, ascending: true }; // Track sorting state
 
         // Function to sort table by a specific column
         function sortTable(table, colIndex, ascending) {
@@ -90,28 +116,34 @@
             rowsArray.forEach(row => table.tBodies[0].appendChild(row));
         }
 
-        // Attach click event listeners to table headers for sorting
-        headers.forEach((header, colIndex) => {
-            header.addEventListener('click', () => {
-                const isAscending = state.sortCol === colIndex ? !state.ascending : true;
-                state.sortCol = colIndex;
-                state.ascending = isAscending;
-                sortTable(table, colIndex, isAscending);
-            });
-        });
+        document.addEventListener('DOMContentLoaded', () => {
+            const tables = document.querySelectorAll('.sortable-table');
+            tables.forEach((table) => {
+                const headers = table.querySelectorAll('th');
+                const rows = table.querySelectorAll('tbody tr');
+                const state = { sortCol: null, ascending: true }; // Track sorting state
+                
+                // Attach click event listeners to table headers for sorting
+                headers.forEach((header, colIndex) => {
+                    header.addEventListener('click', () => {
+                        const isAscending = state.sortCol === colIndex ? !state.ascending : true;
+                        state.sortCol = colIndex;
+                        state.ascending = isAscending;
+                        sortTable(table, colIndex, isAscending);
+                    });
+                });
 
-        // Attach click event listeners to table rows for navigation
-        rows.forEach(row => {
-            row.addEventListener('click', () => {
-                const slug = row.getAttribute('data-slug');
-                if (slug) {
-                    const currentUrl = new URL(window.location.href);
-                    currentUrl.pathname += `${slug}/`;
-                    window.location.href = currentUrl.href;
-                }
+                // Attach click event listeners to table rows for navigation
+                rows.forEach(row => {
+                    row.addEventListener('click', () => {
+                        const link = row.getAttribute('data-link');
+                        if (link) {
+                            window.location.href = link; 
+                        }
+                    });
+                });
             });
         });
-    });
 
 </script>
 {% endblock scripts %}
